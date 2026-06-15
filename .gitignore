@@ -1,3 +1,4 @@
+# 临时文件
 *.py
 *.json
 *.txt
@@ -5,3 +6,7 @@ tessdata/
 debug_*
 processed_*
 floor_*.png
+temp_*
+
+# 未来可能的本地数据导出
+*_local_backup.json
