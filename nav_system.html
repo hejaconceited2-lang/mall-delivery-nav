@@ -110,8 +110,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
 .map-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
 .map-marker { position:absolute; border:2px dashed rgba(220,38,38,.7); border-radius:50%; background:transparent; transform:translate(-50%,-50%); animation:pulse-ring 1.5s ease-in-out infinite; pointer-events:none; }
 @keyframes pulse-ring { 0%,100% { border-color:rgba(220,38,38,.5); box-shadow:0 0 0 0 rgba(220,38,38,.12); } 50% { border-color:rgba(220,38,38,.9); box-shadow:0 0 0 10px rgba(220,38,38,0); } }
-.map-marker-old { position:absolute; border:2px solid rgba(148,163,184,.5); border-radius:50%; background:rgba(148,163,184,.08); transform:translate(-50%,-50%); pointer-events:none; }
-.map-label-old { position:absolute; background:rgba(148,163,184,.8); color:#fff; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:500; white-space:nowrap; pointer-events:none; z-index:5; }
+.map-marker-old { position:absolute; border:2.5px dashed rgba(217,119,6,.75); border-radius:50%; background:rgba(251,191,36,.12); transform:translate(-50%,-50%); pointer-events:none; }
+.map-label-old { position:absolute; background:rgba(217,119,6,.88); color:#fff; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; white-space:nowrap; pointer-events:none; z-index:5; }
 .map-label { position:absolute; background:rgba(220,38,38,.88); color:#fff; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; white-space:nowrap; pointer-events:none; z-index:10; }
 .map-info { text-align:center; font-size:12px; color:var(--text3); margin-top:10px; }
 .map-coord { text-align:center; font-size:12px; color:var(--red); margin-top:2px; }
@@ -524,6 +524,8 @@ function onMapClick(e) {
   document.getElementById('editCoordY').value = yPct;
   document.getElementById('editFloor').value = floorConfig[currentFloorIdx].id;
   exitMarkMode();
+  // Auto-switch back to data tab
+  setTimeout(() => switchTab('data'), 200);
 }
 
 function markMode(shopId) {
