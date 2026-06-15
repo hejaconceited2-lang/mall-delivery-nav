@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>商城送餐导航</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Microsoft YaHei', -apple-system, sans-serif; background:#f5f5f5; color:#333; }
+
+.header { background:linear-gradient(135deg,#e94560,#c23152); color:#fff; padding:12px 16px; text-align:center; }
+.header h1 { font-size:17px; }
+.header .sub { font-size:11px; opacity:0.85; margin-top:2px; }
+
+.tab-nav { display:flex; background:#fff; border-bottom:2px solid #e0e0e0; position:sticky; top:0; z-index:99; }
+.tab-nav button { flex:1; padding:12px 6px; border:none; background:none; font-size:13px; cursor:pointer; color:#666; border-bottom:3px solid transparent; }
+.tab-nav button.active { color:#e94560; border-bottom-color:#e94560; font-weight:bold; }
+
+.content { max-width:960px; margin:0 auto; padding:12px; }
+.panel { display:none; }
+.panel.active { display:block; }
+
+/* Search */
+.search-box { position:relative; margin-bottom:12px; }
+.search-box input { width:100%; padding:12px 44px 12px 14px; border:2px solid #ddd; border-radius:10px; font-size:15px; outline:none; }
+.search-box input:focus { border-color:#e94560; }
+.search-box .clear { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:20px; color:#999; cursor:pointer; display:none; }
+.search-box .clear.show { display:block; }
+
+.result-card { background:#fff; border-radius:10px; padding:14px; margin-bottom:8px; box-shadow:0 1px 3px rgba(0,0,0,0.08); border-left:4px solid #e94560; }
+.result-card .shop-name { font-size:17px; font-weight:bold; }
+.result-card .shop-num { font-size:12px; color:#e94560; margin-left:6px; }
+.result-card .floor-tag { display:inline-block; background:#e94560; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; margin-bottom:4px; }
+.result-card .direction { margin-top:6px; padding:8px 10px; background:#fff8e1; border-radius:6px; font-size:13px; line-height:1.5; }
+.result-card .elevator { font-size:12px; color:#666; margin-top:2px; }
+.result-card .locate-btn { margin-top:8px; padding:6px 14px; background:#1565c0; color:#fff; border:none; border-radius:6px; font-size:13px; cursor:pointer; }
+.result-card .locate-btn:hover { background:#0d47a1; }
+
+/* Map viewer */
+.map-wrapper { position:relative; display:inline-block; max-width:100%; cursor:crosshair; }
+.map-wrapper img { max-width:100%; height:auto; display:block; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+
+/* Highlight overlay */
+.map-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+.map-marker { position:absolute; border:2px dashed rgba(255,23,68,0.7); border-radius:50%; background:transparent; transform:translate(-50%,-50%); animation:pulse-ring 1.5s ease-in-out infinite; pointer-events:none; }
+@keyframes pulse-ring { 0%,100% { border-color:rgba(255,23,68,0.5); box-shadow:0 0 0 0 rgba(255,23,68,0.12); } 50% { border-color:rgba(255,23,68,0.9); box-shadow:0 0 0 10px rgba(255,23,68,0); } }
+
+.map-label { position:absolute; background:rgba(200,20,50,0.8); color:#fff; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:bold; white-space:nowrap; pointer-events:none; z-index:10; opacity:0.85; }
+
+.map-crosshair { position:absolute; width:28px; height:28px; border:2px dashed #ff1744; border-radius:50%; transform:translate(-50%,-50%); pointer-events:none; display:none; z-index:20; }
+
+.floor-select { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.floor-select button { padding:8px 18px; border:1px solid #ddd; border-radius:20px; background:#fff; font-size:13px; cursor:pointer; }
+.floor-select button.active { background:#e94560; color:#fff; border-color:#e94560; }
+
+.map-controls { margin-bottom:8px; font-size:12px; color:#666; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.map-controls .mode-indicator { padding:4px 10px; border-radius:4px; font-weight:bold; }
+.map-controls .mode-indicator.view { background:#e8f5e9; color:#2e7d32; }
+.map-controls .mode-indicator.mark { background:#fff3e0; color:#e65100; }
+
+/* Data panel */
+.form-group { margin-bottom:10px; }
+.form-group label { display:block; font-size:13px; font-weight:bold; margin-bottom:3px; color:#555; }
+.form-group input, .form-group textarea, .form-group select { width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none; }
+.form-group textarea { height:50px; resize:vertical; }
+.form-group input:focus, .form-group textarea:focus { border-color:#e94560; }
+.coord-row { display:flex; gap:10px; }
+.coord-row .form-group { flex:1; }
+
+.btn-row { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+.btn { padding:10px 20px; border:none; border-radius:8px; font-size:14px; cursor:pointer; font-weight:bold; }
+.btn-primary { background:#e94560; color:#fff; }
+.btn-secondary { background:#fff; color:#e94560; border:2px solid #e94560; }
+.btn-outline { background:#fff; color:#666; border:1px solid #ddd; }
+.btn-danger { background:#fff; color:#d32f2f; border:1px solid #d32f2f; }
+
+.shop-table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; background:#fff; border-radius:8px; overflow:hidden; }
+.shop-table th { background:#e94560; color:#fff; padding:8px 6px; text-align:left; font-size:12px; }
+.shop-table td { padding:6px; border-bottom:1px solid #eee; font-size:12px; }
+.shop-table .action-btn { padding:3px 8px; border:none; border-radius:3px; font-size:11px; cursor:pointer; margin:0 1px; }
+.action-btn.edit-btn { background:#e3f2fd; color:#1565c0; }
+.action-btn.del-btn { background:#ffebee; color:#c62828; }
+.action-btn.locate-btn { background:#e8f5e9; color:#2e7d32; }
+
+.stats { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.stat-item { background:#fff; padding:10px 14px; border-radius:8px; text-align:center; min-width:60px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.stat-item .num { font-size:22px; font-weight:bold; color:#e94560; }
+.stat-item .label { font-size:10px; color:#999; }
+.stat-item.clickable { cursor:pointer; }
+.stat-item.clickable:hover { background:#fef0f0; }
+
+.empty-state { text-align:center; padding:30px; color:#999; }
+.import-area { margin-top:16px; padding:14px; background:#fff; border-radius:10px; border:2px dashed #ddd; }
+.import-area textarea { width:100%; height:100px; border:1px solid #ddd; border-radius:6px; padding:8px; font-size:12px; font-family:monospace; }
+.import-area .hint { font-size:11px; color:#999; margin:6px 0; }
+.info-bar { font-size:11px; color:#999; text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏢 商城送餐导航</h1>
+  <div class="sub" id="mallName">商城名称未设置</div>
+</div>
+
+<div class="tab-nav">
+  <button class="active" onclick="switchTab('search')">🔍 搜店铺</button>
+  <button onclick="switchTab('map')">🗺️ 楼层图</button>
+  <button onclick="switchTab('data')">📝 数据管理</button>
+</div>
+
+<div class="content">
+
+  <!-- ====== SEARCH PANEL ====== -->
+  <div id="panel-search" class="panel active">
+    <div class="stats" id="statsBar"></div>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="输入店铺编号搜索..." oninput="doSearch()" autocomplete="off">
+      <button class="clear" id="clearBtn" onclick="clearSearch()">✕</button>
+    </div>
+    <div id="searchResults"><div class="empty-state">🔍 输入店铺编号搜索</div></div>
+  </div>
+
+  <!-- ====== MAP PANEL ====== -->
+  <div id="panel-map" class="panel">
+    <div class="floor-select" id="floorBtns"></div>
+    <div class="map-controls">
+      <span class="mode-indicator view" id="modeIndicator">👁️ 浏览模式</span>
+      <span style="font-size:11px;" id="clickHint">点击地图可标记店铺位置</span>
+    </div>
+    <div style="position:relative; overflow:auto; max-height:70vh; border-radius:8px;">
+      <div class="map-wrapper" id="mapWrapper" onclick="onMapClick(event)">
+        <img id="floorImg" src="" alt="楼层疏散图" style="display:none;" draggable="false">
+        <div class="map-crosshair" id="crosshair"></div>
+        <div class="map-overlay" id="mapOverlay"></div>
+      </div>
+    </div>
+    <div class="info-bar" id="mapInfo">请选择楼层 | 浏览模式点击图片查看高清原图</div>
+    <div class="info-bar" style="color:#e94560;" id="coordDisplay"></div>
+  </div>
+
+  <!-- ====== DATA PANEL ====== -->
+  <div id="panel-data" class="panel">
+    <div class="form-group"><label>🏬 商城名称</label><input type="text" id="mallNameInput" placeholder="例如：万达广场·五角场" onchange="saveMallName()"></div>
+    <h3 style="margin:16px 0 10px;">添加 / 编辑店铺</h3>
+    <div class="form-group"><label>楼层 *</label><select id="editFloor"></select></div>
+    <div class="form-group"><label>店铺编号 *</label><input type="text" id="editNum" placeholder="例如：4058, A101"></div>
+    <div class="form-group"><label>最近电梯/出入口</label><input type="text" id="editElevator" placeholder="例如：6号客梯"></div>
+    <div class="form-group"><label>出电梯后走法</label><textarea id="editDirection" placeholder="例如：出门左转，直行20米，第一个路口右转，右手边第3家"></textarea></div>
+    <div class="coord-row">
+      <div class="form-group"><label>图上坐标X (%) <span style="font-weight:normal;color:#999;">自动获取</span></label><input type="text" id="editCoordX" placeholder="在楼层图上点击"></div>
+      <div class="form-group"><label>图上坐标Y (%) <span style="font-weight:normal;color:#999;">自动获取</span></label><input type="text" id="editCoordY" placeholder="在楼层图上点击"></div>
+    </div>
+    <input type="hidden" id="editId">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveShop()">💾 保存</button>
+      <button class="btn btn-secondary" onclick="clearForm()">🔄 清空</button>
+      <button class="btn btn-outline" onclick="switchTab('map'); markMode()" id="pickCoordBtn">🎯 在楼层图上点击取坐标</button>
+    </div>
+    <div style="margin-top:20px;">
+      <h3 style="margin-bottom:6px;">已录入店铺 (<span id="shopCount">0</span>)</h3>
+      <table class="shop-table" id="shopTable"><thead><tr><th>楼层</th><th>编号</th><th>坐标</th><th>操作</th></tr></thead><tbody id="shopTableBody"></tbody></table>
+      <div class="empty-state" id="tableEmpty">还没有录入店铺数据</div>
+    </div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-outline" onclick="exportData()">📤 导出备份</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importArea').style.display='block'">📥 批量导入</button>
+      <button class="btn btn-outline" onclick="downloadCSV()">📊 导出CSV</button>
+      <button class="btn btn-outline" onclick="migrateOldData()">🔁 迁移旧版数据</button>
+      <button class="btn btn-outline" onclick="loadDefaults()">📥 加载自动识别的68个编号</button>
+      <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空</button>
+    </div>
+    <div class="import-area" id="importArea" style="display:none;">
+      <h4>批量导入</h4>
+      <p class="hint">CSV格式（楼层,编号,电梯,走法,x%,y%）或粘贴JSON数组</p>
+      <textarea id="importText" placeholder="楼层,编号,电梯,走法,x%,y%&#10;3F,4058,6号梯,出门左转,35.2,42.1&#10;或 JSON: [{floor:'3F',num:'4058',elevator:'6号梯'}]"></textarea>
+      <div class="btn-row"><button class="btn btn-primary" onclick="importData()">导入</button><button class="btn btn-outline" onclick="document.getElementById('importArea').style.display='none'">取消</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== CONFIG ====== */
+const STORAGE_KEY = 'mall_nav_shops_v2';
+const MALL_KEY = 'mall_nav_name';
+const FLOOR_KEY = 'mall_nav_floors';
+
+// Floor config — user-corrected mapping
+let floorConfig = JSON.parse(localStorage.getItem(FLOOR_KEY)) || [
+  { id: '5F', label: '5F', imgFile: '0d667d2a8dc413eaafb4786de19f0214.jpg' },
+  { id: '6F', label: '6F', imgFile: '10f27b10ed98952c4f80ef06942a0862.jpg' },
+  { id: '4F', label: '4F', imgFile: '1326027b73ab80b5f46dbb489ca912d5.jpg' },
+  { id: '3F', label: '3F', imgFile: '679d8cf014f685dc05a2705f71894256.jpg' }
+];
+
+// Map state
+let currentFloorIdx = 0;
+let isMarkMode = false;
+let pendingCoordShopId = null;
+
+/* ====== DATA ====== */
+const DEFAULT_SHOPS = [{"floor":"3F","num":"3001","elevator":"","direction":"","coordX":93.1,"coordY":71},{"floor":"3F","num":"3009","elevator":"","direction":"","coordX":49.9,"coordY":79.1},{"floor":"3F","num":"3011","elevator":"","direction":"","coordX":40,"coordY":79.3},{"floor":"3F","num":"3019","elevator":"","direction":"","coordX":34.5,"coordY":47.1},{"floor":"3F","num":"3020","elevator":"","direction":"","coordX":37.5,"coordY":44.7},{"floor":"3F","num":"304","elevator":"","direction":"","coordX":79.6,"coordY":69.8},{"floor":"3F","num":"3048","elevator":"","direction":"","coordX":76.3,"coordY":66.6},{"floor":"3F","num":"3055","elevator":"","direction":"","coordX":59.3,"coordY":69.1},{"floor":"3F","num":"3059","elevator":"","direction":"","coordX":49.4,"coordY":68.7},{"floor":"3F","num":"3062","elevator":"","direction":"","coordX":46.8,"coordY":73.9},{"floor":"3F","num":"3064","elevator":"","direction":"","coordX":43.2,"coordY":74},{"floor":"3F","num":"3066","elevator":"","direction":"","coordX":38.5,"coordY":69.6},{"floor":"3F","num":"3074","elevator":"","direction":"","coordX":36.6,"coordY":52.9},{"floor":"3F","num":"3077","elevator":"","direction":"","coordX":61.1,"coordY":46},{"floor":"3F","num":"3081","elevator":"","direction":"","coordX":58.3,"coordY":51.4},{"floor":"3F","num":"3089","elevator":"","direction":"","coordX":71.9,"coordY":60},{"floor":"3F","num":"3094","elevator":"","direction":"","coordX":85.6,"coordY":59.1},{"floor":"3F","num":"3108","elevator":"","direction":"","coordX":65.7,"coordY":61.4},{"floor":"3F","num":"343","elevator":"","direction":"","coordX":88.1,"coordY":46.8},{"floor":"4F","num":"4008","elevator":"","direction":"","coordX":44.2,"coordY":70.9},{"floor":"4F","num":"4009","elevator":"","direction":"","coordX":41.9,"coordY":65.4},{"floor":"4F","num":"4012","elevator":"","direction":"","coordX":47.4,"coordY":75.7},{"floor":"4F","num":"4015","elevator":"","direction":"","coordX":54.7,"coordY":70.5},{"floor":"4F","num":"4017","elevator":"","direction":"","coordX":58.7,"coordY":70.3},{"floor":"4F","num":"4018","elevator":"","direction":"","coordX":60,"coordY":74.5},{"floor":"4F","num":"4023","elevator":"","direction":"","coordX":70.4,"coordY":70.3},{"floor":"4F","num":"4025","elevator":"","direction":"","coordX":72.9,"coordY":70.5},{"floor":"4F","num":"4027","elevator":"","direction":"","coordX":74.1,"coordY":70.4},{"floor":"4F","num":"4028","elevator":"","direction":"","coordX":78.2,"coordY":69.4},{"floor":"4F","num":"4029","elevator":"","direction":"","coordX":76.1,"coordY":70.4},{"floor":"4F","num":"4033","elevator":"","direction":"","coordX":83.6,"coordY":70.8},{"floor":"4F","num":"4035","elevator":"","direction":"","coordX":89,"coordY":76.1},{"floor":"4F","num":"4036","elevator":"","direction":"","coordX":91.3,"coordY":71.2},{"floor":"4F","num":"404","elevator":"","direction":"","coordX":87,"coordY":65.1},{"floor":"4F","num":"4041B","elevator":"","direction":"","coordX":87.4,"coordY":70.2},{"floor":"4F","num":"4043","elevator":"","direction":"","coordX":73,"coordY":58.4},{"floor":"4F","num":"4046","elevator":"","direction":"","coordX":75.3,"coordY":58.1},{"floor":"4F","num":"4047","elevator":"","direction":"","coordX":79.9,"coordY":65.9},{"floor":"4F","num":"4049","elevator":"","direction":"","coordX":80,"coordY":68.4},{"floor":"4F","num":"405","elevator":"","direction":"","coordX":74.5,"coordY":64.9},{"floor":"4F","num":"4050","elevator":"","direction":"","coordX":70.3,"coordY":58.5},{"floor":"4F","num":"4051-B","elevator":"","direction":"","coordX":74.9,"coordY":67.8},{"floor":"4F","num":"4057","elevator":"","direction":"","coordX":61.8,"coordY":64.1},{"floor":"4F","num":"4057A","elevator":"","direction":"","coordX":63.7,"coordY":64.2},{"floor":"4F","num":"4058","elevator":"","direction":"","coordX":60.2,"coordY":58.3},{"floor":"4F","num":"4059","elevator":"","direction":"","coordX":62.6,"coordY":67.8},{"floor":"4F","num":"4061","elevator":"","direction":"","coordX":54.2,"coordY":67.6},{"floor":"4F","num":"4062","elevator":"","direction":"","coordX":47.9,"coordY":70.4},{"floor":"4F","num":"4072","elevator":"","direction":"","coordX":43.9,"coordY":52.1},{"floor":"4F","num":"4075","elevator":"","direction":"","coordX":51.7,"coordY":53.2},{"floor":"4F","num":"4076","elevator":"","direction":"","coordX":54.7,"coordY":51.9},{"floor":"4F","num":"4077","elevator":"","direction":"","coordX":63.9,"coordY":50.3},{"floor":"4F","num":"4078","elevator":"","direction":"","coordX":67.4,"coordY":49.9},{"floor":"4F","num":"4081","elevator":"","direction":"","coordX":79,"coordY":47.2},{"floor":"4F","num":"4082","elevator":"","direction":"","coordX":81.3,"coordY":48.1},{"floor":"4F","num":"4090","elevator":"","direction":"","coordX":81.9,"coordY":40.7},{"floor":"4F","num":"4091","elevator":"","direction":"","coordX":72.3,"coordY":38.1},{"floor":"4F","num":"4093","elevator":"","direction":"","coordX":69.8,"coordY":38.9},{"floor":"4F","num":"4102","elevator":"","direction":"","coordX":56.6,"coordY":43.8},{"floor":"4F","num":"4103","elevator":"","direction":"","coordX":53.3,"coordY":43.8},{"floor":"4F","num":"4105","elevator":"","direction":"","coordX":51.4,"coordY":43.4},{"floor":"4F","num":"4107","elevator":"","direction":"","coordX":49.4,"coordY":48.5},{"floor":"4F","num":"4108","elevator":"","direction":"","coordX":49.4,"coordY":49.9},{"floor":"4F","num":"4110","elevator":"","direction":"","coordX":44,"coordY":49.6},{"floor":"5F","num":"5011","elevator":"","direction":"","coordX":27.9,"coordY":34.1},{"floor":"5F","num":"548","elevator":"","direction":"","coordX":52.1,"coordY":41.4},{"floor":"5F","num":"5470","elevator":"","direction":"","coordX":16,"coordY":61.6},{"floor":"5F","num":"5A19","elevator":"","direction":"","coordX":49.6,"coordY":71.1}];
+
+const OLD_KEY = 'mall_nav_shops';
+
+function getShops() {
+  try {
+    let shops = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!shops || shops.length === 0) {
+      // Try migrate from old storage key
+      const old = JSON.parse(localStorage.getItem(OLD_KEY));
+      if (old && old.length > 0) {
+        shops = old.map(s => ({...s, _id: s._id||('m'+Date.now().toString(36)+Math.random().toString(36).substr(2,6))}));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shops));
+      }
+    }
+    if (!shops || shops.length === 0) {
+      // First use: load auto-extracted defaults
+      shops = DEFAULT_SHOPS.map(s => ({...s, _id: 'd'+Math.random().toString(36).substr(2,8)}));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shops));
+    }
+    return shops;
+  } catch(e) { return []; }
+}
+function saveShops(shops) { localStorage.setItem(STORAGE_KEY, JSON.stringify(shops)); }
+function getMallName() { return localStorage.getItem(MALL_KEY) || ''; }
+
+/* ====== INIT ====== */
+function init() {
+  document.getElementById('mallName').textContent = getMallName() || '商城名称未设置';
+  document.getElementById('mallNameInput').value = getMallName();
+  buildFloorSelects();
+  buildFloorBtns();
+  renderShopTable();
+  updateStats();
+  if (floorConfig.length > 0) showFloorMap(0);
+}
+
+function buildFloorSelects() {
+  const sel = document.getElementById('editFloor');
+  sel.innerHTML = '<option value="">请选择楼层</option>';
+  floorConfig.forEach(f => sel.innerHTML += `<option value="${f.id}">${f.label}</option>`);
+}
+
+function buildFloorBtns() {
+  document.getElementById('floorBtns').innerHTML = floorConfig.map((f,i) =>
+    `<button class="${i===currentFloorIdx?'active':''}" onclick="showFloorMap(${i})">${f.label}</button>`
+  ).join('');
+}
+
+function showFloorMap(idx) {
+  currentFloorIdx = idx;
+  document.querySelectorAll('#floorBtns button').forEach((b,i) => b.classList.toggle('active', i===idx));
+  const img = document.getElementById('floorImg');
+  const f = floorConfig[idx];
+  if (f && f.imgFile) {
+    img.src = f.imgFile;
+    img.style.display = 'block';
+    img.onclick = function() { if (!isMarkMode) window.open(f.imgFile, '_blank'); };
+  }
+  document.getElementById('mapInfo').textContent = `${f.label} — 点击地图可标记店铺坐标`;
+  // Clear overlay
+  document.getElementById('mapOverlay').innerHTML = '';
+  document.getElementById('crosshair').style.display = 'none';
+  document.getElementById('coordDisplay').textContent = '';
+}
+
+/* ====== TAB SWITCH ====== */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  if (tab === 'search') {
+    document.querySelector('.tab-nav button:nth-child(1)').classList.add('active');
+    document.getElementById('panel-search').classList.add('active');
+    updateStats();
+  } else if (tab === 'map') {
+    document.querySelector('.tab-nav button:nth-child(2)').classList.add('active');
+    document.getElementById('panel-map').classList.add('active');
+  } else if (tab === 'data') {
+    document.querySelector('.tab-nav button:nth-child(3)').classList.add('active');
+    document.getElementById('panel-data').classList.add('active');
+    renderShopTable();
+  }
+}
+
+/* ====== SEARCH ====== */
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  const clearBtn = document.getElementById('clearBtn');
+  const resultsDiv = document.getElementById('searchResults');
+  if (q) { clearBtn.classList.add('show'); }
+  else {
+    clearBtn.classList.remove('show');
+    resultsDiv.innerHTML = '<div class="empty-state">🔍 输入店铺编号搜索</div>';
+    updateStats(); return;
+  }
+  const shops = getShops();
+  const qLower = q.toLowerCase();
+  const matched = shops.filter(s =>
+    s.num.toLowerCase().includes(qLower) ||
+    (s.floor||'').toLowerCase().includes(qLower)
+  );
+  if (matched.length === 0) {
+    resultsDiv.innerHTML = `<div class="empty-state">😕 没找到 "${q}"<br><small>换个关键词试试</small></div>`;
+  } else {
+    resultsDiv.innerHTML = matched.map(s => `
+      <div class="result-card">
+        <span class="floor-tag">${s.floor}</span>
+        <span class="shop-name">${s.num}</span>
+        ${s.elevator ? `<div class="elevator">🛗 ${s.elevator}</div>` : ''}
+        ${s.direction ? `<div class="direction">🚶 ${s.direction}</div>` : ''}
+        <button class="locate-btn" onclick="locateShop('${s._id}')">📍 在楼层图上查看位置</button>
+      </div>
+    `).join('');
+  }
+  updateStats(matched.length);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').classList.remove('show');
+  document.getElementById('searchResults').innerHTML = '<div class="empty-state">🔍 输入店铺编号搜索</div>';
+  updateStats();
+}
+
+function locateShop(shopId) {
+  const shops = getShops();
+  const s = shops.find(s => s._id === shopId);
+  if (!s) return;
+  if (s.coordX == null || s.coordY == null) {
+    alert(`⚠️ 编号 "${s.num}" 还没有标注坐标位置。\n\n请在「数据管理」中找到该店铺，点击「🎯取坐标」，然后在地图上点击该编号所在位置。`);
+    return;
+  }
+  // Find floor index
+  const fi = floorConfig.findIndex(f => f.id === s.floor);
+  if (fi < 0) { alert('楼层配置异常'); return; }
+  showFloorMap(fi);
+  switchTab('map');
+  // Show marker
+  const overlay = document.getElementById('mapOverlay');
+  overlay.innerHTML = `
+    <div class="map-marker" style="left:${s.coordX}%;top:${s.coordY}%;width:38px;height:38px;"></div>
+    <div class="map-label" style="left:${s.coordX}%;top:${s.coordY}%;transform:translate(22px,-22px);">${s.num}</div>
+  `;
+  document.getElementById('mapInfo').textContent = `📍 ${s.floor} — 编号 ${s.num}`;
+  document.getElementById('coordDisplay').textContent = `坐标: ${s.coordX}%, ${s.coordY}%`;
+  // Auto-scroll to marker
+  document.querySelector('.map-wrapper').scrollIntoView({behavior:'smooth'});
+}
+
+function updateStats(filteredCount) {
+  const shops = getShops();
+  const byFloor = {};
+  shops.forEach(s => { byFloor[s.floor] = (byFloor[s.floor]||0)+1; });
+  let html = `<div class="stat-item"><div class="num">${shops.length}</div><div class="label">总店铺</div></div>`;
+  html += `<div class="stat-item"><div class="num">${Object.keys(byFloor).length}</div><div class="label">覆盖楼层</div></div>`;
+  html += `<div class="stat-item"><div class="num">${shops.filter(s=>s.coordX!=null).length}</div><div class="label">已标注坐标</div></div>`;
+  if (filteredCount !== undefined) html += `<div class="stat-item"><div class="num">${filteredCount}</div><div class="label">搜索结果</div></div>`;
+  Object.keys(byFloor).sort().forEach(f => {
+    html += `<div class="stat-item clickable" onclick="filterByFloor('${f}')"><div class="num">${byFloor[f]}</div><div class="label">${f}</div></div>`;
+  });
+  document.getElementById('statsBar').innerHTML = html;
+}
+
+function filterByFloor(floor) {
+  document.getElementById('searchInput').value = floor;
+  doSearch();
+  switchTab('search');
+}
+
+/* ====== MAP CLICK ====== */
+function onMapClick(e) {
+  if (!isMarkMode) return;
+  const wrapper = document.getElementById('mapWrapper');
+  const img = document.getElementById('floorImg');
+  if (!img.complete || !img.naturalWidth) return;
+
+  const rect = img.getBoundingClientRect();
+  const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+  const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+
+  // Show crosshair
+  const crosshair = document.getElementById('crosshair');
+  crosshair.style.display = 'block';
+  crosshair.style.left = xPct + '%';
+  crosshair.style.top = yPct + '%';
+
+  document.getElementById('coordDisplay').textContent = `已标记坐标: ${xPct}%, ${yPct}%`;
+
+  if (pendingCoordShopId) {
+    // Update existing shop
+    const shops = getShops();
+    const idx = shops.findIndex(s => s._id === pendingCoordShopId);
+    if (idx >= 0) {
+      shops[idx].coordX = parseFloat(xPct);
+      shops[idx].coordY = parseFloat(yPct);
+      shops[idx].floor = floorConfig[currentFloorIdx].id;
+      saveShops(shops);
+      document.getElementById('coordDisplay').textContent += ` ✅ 已更新 "${shops[idx].num}" 坐标`;
+    }
+    pendingCoordShopId = null;
+  }
+
+  // Also fill form fields
+  document.getElementById('editCoordX').value = xPct;
+  document.getElementById('editCoordY').value = yPct;
+  document.getElementById('editFloor').value = floorConfig[currentFloorIdx].id;
+
+  exitMarkMode();
+}
+
+function markMode(shopId) {
+  isMarkMode = true;
+  pendingCoordShopId = shopId || null;
+  document.getElementById('modeIndicator').className = 'mode-indicator mark';
+  document.getElementById('modeIndicator').textContent = '🎯 标记模式';
+  document.getElementById('clickHint').textContent = '在地图上点击店铺编号所在位置';
+  document.getElementById('clickHint').style.color = '#e65100';
+  document.getElementById('mapInfo').textContent = '🎯 请点击地图上店铺编号的位置';
+  switchTab('map');
+  if (shopId) {
+    const shops = getShops();
+    const s = shops.find(s => s._id === shopId);
+    if (s) {
+      const fi = floorConfig.findIndex(f => f.id === s.floor);
+      if (fi >= 0) showFloorMap(fi);
+      document.getElementById('mapInfo').textContent = `🎯 请点击编号 ${s.num} 在地图上的位置`;
+    }
+  }
+}
+
+function exitMarkMode() {
+  isMarkMode = false;
+  document.getElementById('modeIndicator').className = 'mode-indicator view';
+  document.getElementById('modeIndicator').textContent = '👁️ 浏览模式';
+  document.getElementById('clickHint').textContent = '浏览模式：点击图片查看高清原图';
+  document.getElementById('clickHint').style.color = '#666';
+  document.getElementById('mapInfo').textContent = `${floorConfig[currentFloorIdx].label} | 浏览模式：点击图片查看高清原图`;
+}
+
+/* ====== DATA ====== */
+function saveShop() {
+  const floor = document.getElementById('editFloor').value;
+  const num = document.getElementById('editNum').value.trim();
+  const elevator = document.getElementById('editElevator').value.trim();
+  const direction = document.getElementById('editDirection').value.trim();
+  const coordX = document.getElementById('editCoordX').value.trim();
+  const coordY = document.getElementById('editCoordY').value.trim();
+  const editId = document.getElementById('editId').value;
+  if (!floor || !num) { alert('⚠️ 楼层、店铺编号为必填'); return; }
+  const shops = getShops();
+  const data = { floor, num, elevator, direction,
+    coordX: coordX ? parseFloat(coordX) : null,
+    coordY: coordY ? parseFloat(coordY) : null
+  };
+  if (editId) {
+    const idx = shops.findIndex(s => s._id === editId);
+    if (idx >= 0) shops[idx] = { ...shops[idx], ...data };
+  } else {
+    data._id = Date.now().toString(36) + Math.random().toString(36).substr(2,5);
+    shops.push(data);
+  }
+  saveShops(shops);
+  clearForm();
+  renderShopTable();
+  updateStats();
+}
+
+function editShop(id) {
+  const s = getShops().find(s => s._id === id);
+  if (!s) return;
+  document.getElementById('editId').value = s._id;
+  document.getElementById('editFloor').value = s.floor;
+  document.getElementById('editNum').value = s.num;
+  document.getElementById('editElevator').value = s.elevator||'';
+  document.getElementById('editDirection').value = s.direction||'';
+  document.getElementById('editCoordX').value = s.coordX!=null ? s.coordX : '';
+  document.getElementById('editCoordY').value = s.coordY!=null ? s.coordY : '';
+  document.getElementById('editFloor').scrollIntoView({behavior:'smooth'});
+}
+
+function deleteShop(id) {
+  if (!confirm('确定删除？')) return;
+  saveShops(getShops().filter(s => s._id !== id));
+  renderShopTable(); updateStats();
+}
+
+function clearForm() {
+  ['editId','editFloor','editNum','editElevator','editDirection','editCoordX','editCoordY'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  exitMarkMode();
+  pendingCoordShopId = null;
+}
+
+function renderShopTable() {
+  const shops = getShops();
+  document.getElementById('shopCount').textContent = shops.length;
+  const tbody = document.getElementById('shopTableBody');
+  const empty = document.getElementById('tableEmpty');
+  const table = document.getElementById('shopTable');
+  if (shops.length === 0) {
+    empty.style.display = 'block'; table.style.display = 'none';
+  } else {
+    empty.style.display = 'none'; table.style.display = 'table';
+    shops.sort((a,b) => (a.floor||'').localeCompare(b.floor||'') || (a.num||'').localeCompare(b.num||''));
+    tbody.innerHTML = shops.map(s => `
+      <tr>
+        <td>${s.floor}</td><td>${s.num}</td>
+        <td>${s.coordX!=null ? s.coordX+'%, '+s.coordY+'%' : '<span style="color:#ccc;">未标注</span>'}</td>
+        <td>
+          <button class="action-btn locate-btn" onclick="locateShop('${s._id}')" title="在地图上查看">📍</button>
+          <button class="action-btn edit-btn" onclick="editShop('${s._id}')">编辑</button>
+          <button class="action-btn del-btn" onclick="deleteShop('${s._id}')">删除</button>
+          <button class="action-btn" style="background:#fff3e0;color:#e65100;" onclick="markMode('${s._id}')" title="重新标注坐标">🎯</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+}
+
+function clearAllData() {
+  if (!confirm('⚠️ 确定删除全部数据？不可恢复！')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderShopTable(); updateStats();
+}
+
+function migrateOldData() {
+  const old = JSON.parse(localStorage.getItem(OLD_KEY));
+  if (!old || old.length === 0) { alert('没有旧版数据需要迁移'); return; }
+  const existing = getShops();
+  let added = 0;
+  old.forEach(os => {
+    if (!existing.find(e => e.num === os.num && e.floor === os.floor)) {
+      existing.push({...os, _id: os._id||('m'+Date.now().toString(36)+Math.random().toString(36).substr(2,6))});
+      added++;
+    }
+  });
+  saveShops(existing);
+  renderShopTable(); updateStats();
+  alert('✅ 迁移完成：' + old.length + ' 条旧数据，新增 ' + added + ' 条（去重后）');
+}
+
+function loadDefaults() {
+  const existing = getShops();
+  if (existing.length > 0 && !confirm('当前已有 ' + existing.length + ' 条数据。\\n\\n「确定」= 合并去重\\n「取消」= 不操作')) return;
+  const merged = [...existing];
+  DEFAULT_SHOPS.forEach(ds => {
+    if (!merged.find(e => e.num === ds.num && e.floor === ds.floor)) {
+      merged.push({...ds, _id: 'd'+Date.now().toString(36)+Math.random().toString(36).substr(2,6)});
+    }
+  });
+  saveShops(merged);
+  renderShopTable(); updateStats();
+  alert('✅ 已合并，共 ' + merged.length + ' 条');
+}
+
+function saveMallName() {
+  const n = document.getElementById('mallNameInput').value.trim();
+  localStorage.setItem(MALL_KEY, n);
+  document.getElementById('mallName').textContent = n || '商城名称未设置';
+}
+
+/* ====== IMPORT/EXPORT ====== */
+function exportData() {
+  const blob = new Blob([JSON.stringify({
+    mallName: getMallName(), floorConfig, shops: getShops(), exportedAt: new Date().toISOString()
+  }, null, 2)], {type:'application/json'});
+  downloadBlob(blob, 'mall_nav_backup.json');
+}
+
+function downloadCSV() {
+  const shops = getShops();
+  let csv = '﻿楼层,编号,最近电梯,走法说明,X坐标%,Y坐标%\n';
+  shops.forEach(s => {
+    csv += [s.floor, s.num, s.elevator||'', s.direction||'', s.coordX!=null?s.coordX:'', s.coordY!=null?s.coordY:'']
+      .map(c => '"'+(c||'').replace(/"/g,'""')+'"').join(',') + '\n';
+  });
+  downloadBlob(new Blob([csv], {type:'text/csv;charset=utf-8'}), 'mall_nav_shops.csv');
+}
+
+function importData() {
+  const text = document.getElementById('importText').value.trim();
+  if (!text) return;
+  let newShops = [];
+  try {
+    if (text.startsWith('[') || text.startsWith('{')) {
+      const p = JSON.parse(text);
+      newShops = Array.isArray(p) ? p : (p.shops || []);
+      if (p.mallName) { localStorage.setItem(MALL_KEY, p.mallName); document.getElementById('mallName').textContent = p.mallName; document.getElementById('mallNameInput').value = p.mallName; }
+    } else {
+      const lines = text.split('\n').filter(l=>l.trim());
+      const start = lines[0].includes('楼层') ? 1 : 0;
+      for (let i=start; i<lines.length; i++) {
+        const p = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+        if (p.length>=2 && p[0] && p[1]) {
+          newShops.push({floor:p[0], num:p[1], elevator:p[2]||'', direction:p[3]||'',
+            coordX: p[4] ? parseFloat(p[4]) : null, coordY: p[5] ? parseFloat(p[5]) : null});
+        }
+      }
+    }
+    newShops = newShops.map(s => ({...s, _id: s._id || (Date.now().toString(36)+Math.random().toString(36).substr(2,5))}));
+    const existing = getShops();
+    const merged = [...existing];
+    newShops.forEach(ns => {
+      const dup = merged.findIndex(e => e.num===ns.num && e.floor===ns.floor);
+      if (dup>=0) merged[dup] = {...merged[dup], ...ns};
+      else merged.push(ns);
+    });
+    saveShops(merged);
+    document.getElementById('importText').value = '';
+    document.getElementById('importArea').style.display = 'none';
+    renderShopTable(); updateStats();
+    alert(`✅ 导入 ${newShops.length} 条（合并后共 ${merged.length} 条）`);
+  } catch(e) { alert('❌ 格式错误\n'+e.message); }
+}
+
+function downloadBlob(blob, fname) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+document.addEventListener('keydown', e => { if (e.key==='Escape') { exitMarkMode(); clearForm(); } });
+
+init();
+</script>
+</body>
+</html>

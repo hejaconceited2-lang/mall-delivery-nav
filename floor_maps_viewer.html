@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商城消防疏散图 - 楼层总览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#1a1a2e; color:#eee; font-family:'Microsoft YaHei',sans-serif; padding:20px; }
+  h1 { text-align:center; margin-bottom:8px; font-size:22px; }
+  .subtitle { text-align:center; color:#aaa; margin-bottom:20px; font-size:13px; }
+  .tabs { display:flex; gap:10px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+  .tab { padding:10px 30px; background:#16213e; border:1px solid #0f3460; border-radius:6px; cursor:pointer; font-size:15px; color:#ccc; }
+  .tab:hover { background:#0f3460; color:#fff; }
+  .tab.active { background:#e94560; border-color:#e94560; color:#fff; font-weight:bold; }
+  .viewer { max-width:1200px; margin:0 auto; }
+  .floor-img { width:100%; border-radius:8px; border:2px solid #333; display:none; }
+  .floor-img.active { display:block; }
+  .info { text-align:center; margin-top:12px; color:#aaa; font-size:13px; }
+  .actions { text-align:center; margin-top:20px; }
+  .btn { padding:8px 20px; background:#e94560; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px; margin:0 6px; }
+  .btn:hover { background:#c73c54; }
+</style>
+</head>
+<body>
+<h1>🏢 商城消防疏散图 — 5层总览</h1>
+<p class="subtitle">请切换楼层查看各层商铺布局，确认能看清店铺编号/名称</p>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="viewer" id="viewer"></div>
+
+<p class="info" id="info"></p>
+
+<div class="actions">
+  <span style="color:#aaa;font-size:13px;">能看清图上的店铺编号/名称吗？</span>
+</div>
+
+<script>
+const floors = [
+  { name: 'floor_1', label: 'B1 / 1F', file: 'floor_1.png' },
+  { name: 'floor_2', label: '1F / 2F', file: 'floor_2.png' },
+  { name: 'floor_3', label: '2F / 3F', file: 'floor_3.png' },
+  { name: 'floor_4', label: '3F / 4F', file: 'floor_4.png' },
+  { name: 'floor_5', label: '4F / 5F', file: 'floor_5.png' }
+];
+
+const tabs = document.getElementById('tabs');
+const viewer = document.getElementById('viewer');
+const info = document.getElementById('info');
+
+floors.forEach((f, i) => {
+  const tab = document.createElement('div');
+  tab.className = 'tab' + (i===0 ? ' active' : '');
+  tab.textContent = f.label;
+  tab.onclick = () => switchFloor(i);
+  tabs.appendChild(tab);
+
+  const img = document.createElement('img');
+  img.className = 'floor-img' + (i===0 ? ' active' : '');
+  img.src = f.file;
+  img.alt = f.label;
+  img.id = 'img-' + i;
+  viewer.appendChild(img);
+});
+
+function switchFloor(i) {
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', j===i));
+  document.querySelectorAll('.floor-img').forEach((img,j) => img.classList.toggle('active', j===i));
+  info.textContent = floors[i].label + ' — 原图 ' + (i+1) + '/5';
+}
+
+// 点击图片新窗口打开原图
+viewer.addEventListener('click', (e) => {
+  if (e.target.tagName === 'IMG') {
+    const idx = parseInt(e.target.id.split('-')[1]);
+    const origFiles = [
+      '1326027b73ab80b5f46dbb489ca912d5.jpg',
+      '0d667d2a8dc413eaafb4786de19f0214.jpg',
+      '10f27b10ed98952c4f80ef06942a0862.jpg',
+      'eb902ea9484efa8a62323ea41a565be2.jpg',
+      '679d8cf014f685dc05a2705f71894256.jpg'
+    ];
+    window.open(origFiles[idx], '_blank');
+  }
+});
+info.textContent = floors[0].label + ' — 点击图片在新窗口查看高清原图';
+</script>
+</body>
+</html>

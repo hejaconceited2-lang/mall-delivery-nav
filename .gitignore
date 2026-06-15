@@ -1,0 +1,7 @@
+*.py
+*.json
+*.txt
+tessdata/
+debug_*
+processed_*
+floor_*.png
