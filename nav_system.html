@@ -270,7 +270,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
     <div class="btn-group">
       <button class="btn btn-primary" onclick="saveShop()">保存</button>
       <button class="btn btn-outline" onclick="clearForm()">清空</button>
-      <button class="btn btn-outline" onclick="switchTab('map'); markMode()" id="pickCoordBtn">在地图上取坐标</button>
+      <button class="btn btn-outline" onclick="switchTab('map'); markMode(document.getElementById('editId').value)" id="pickCoordBtn">在地图上取坐标</button>
     </div>
 
     <div class="section-title">已录入</div>
@@ -526,20 +526,35 @@ function onMapClick(e) {
 
 function markMode(shopId) {
   isMarkMode = true;
-  pendingCoordShopId = shopId || null;
+  pendingCoordShopId = shopId || document.getElementById('editId').value || null;
   document.getElementById('modeIndicator').className = 'mode-badge mark';
   document.getElementById('modeIndicator').textContent = '标记中';
   document.getElementById('clickHint').textContent = '在地图上点击编号所在位置';
   document.getElementById('clickHint').style.color = 'var(--amber)';
   switchTab('map');
+
+  // Clear any previous markers
+  document.getElementById('mapOverlay').innerHTML = '';
+  document.getElementById('crosshair').style.display = 'none';
+  document.getElementById('coordDisplay').textContent = '';
+
+  // Determine target floor
+  let targetFloor = null;
+  let label = '';
   if (shopId) {
     const s = getShops().find(s => s._id === shopId);
-    if (s) {
-      const fi = floorConfig.findIndex(f => f.id === s.floor);
-      if (fi >= 0) showFloorMap(fi);
-      document.getElementById('mapInfo').textContent = `点击「${s.num}」在地图上的位置`;
-    }
+    if (s) { targetFloor = s.floor; label = `点击「${s.num}」在地图上的位置`; }
   }
+  if (!targetFloor) {
+    targetFloor = document.getElementById('editFloor').value;
+    const num = document.getElementById('editNum').value;
+    label = targetFloor ? `点击「${num||'编号'}」在 ${targetFloor} 图上的位置` : '在地图上点击编号所在位置';
+  }
+  if (targetFloor) {
+    const fi = floorConfig.findIndex(f => f.id === targetFloor);
+    if (fi >= 0) showFloorMap(fi);
+  }
+  document.getElementById('mapInfo').textContent = label;
 }
 
 function exitMarkMode() {
