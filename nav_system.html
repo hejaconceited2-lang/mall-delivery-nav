@@ -110,6 +110,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
 .map-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
 .map-marker { position:absolute; border:2px dashed rgba(220,38,38,.7); border-radius:50%; background:transparent; transform:translate(-50%,-50%); animation:pulse-ring 1.5s ease-in-out infinite; pointer-events:none; }
 @keyframes pulse-ring { 0%,100% { border-color:rgba(220,38,38,.5); box-shadow:0 0 0 0 rgba(220,38,38,.12); } 50% { border-color:rgba(220,38,38,.9); box-shadow:0 0 0 10px rgba(220,38,38,0); } }
+.map-marker-old { position:absolute; border:2px solid rgba(148,163,184,.5); border-radius:50%; background:rgba(148,163,184,.08); transform:translate(-50%,-50%); pointer-events:none; }
+.map-label-old { position:absolute; background:rgba(148,163,184,.8); color:#fff; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:500; white-space:nowrap; pointer-events:none; z-index:5; }
 .map-label { position:absolute; background:rgba(220,38,38,.88); color:#fff; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; white-space:nowrap; pointer-events:none; z-index:10; }
 .map-info { text-align:center; font-size:12px; color:var(--text3); margin-top:10px; }
 .map-coord { text-align:center; font-size:12px; color:var(--red); margin-top:2px; }
@@ -538,22 +540,45 @@ function markMode(shopId) {
   document.getElementById('crosshair').style.display = 'none';
   document.getElementById('coordDisplay').textContent = '';
 
-  // Determine target floor
+  // Determine target floor and show old coords if exist
   let targetFloor = null;
   let label = '';
+  let oldCoords = null;
   if (shopId) {
     const s = getShops().find(s => s._id === shopId);
-    if (s) { targetFloor = s.floor; label = `点击「${s.num}」在地图上的位置`; }
+    if (s) {
+      targetFloor = s.floor;
+      label = `点击「${s.num}」在地图上的新位置`;
+      if (s.coordX != null && s.coordY != null) {
+        oldCoords = { x: s.coordX, y: s.coordY, num: s.num };
+      }
+    }
   }
   if (!targetFloor) {
     targetFloor = document.getElementById('editFloor').value;
     const num = document.getElementById('editNum').value;
-    label = targetFloor ? `点击「${num||'编号'}」在 ${targetFloor} 图上的位置` : '在地图上点击编号所在位置';
+    const cx = document.getElementById('editCoordX').value;
+    const cy = document.getElementById('editCoordY').value;
+    label = targetFloor ? `点击「${num||'编号'}」在 ${targetFloor} 图上的新位置` : '在地图上点击编号所在位置';
+    if (cx && cy) {
+      oldCoords = { x: parseFloat(cx), y: parseFloat(cy), num: num || '' };
+    }
   }
   if (targetFloor) {
     const fi = floorConfig.findIndex(f => f.id === targetFloor);
     if (fi >= 0) showFloorMap(fi);
   }
+
+  // Show old coordinates with gray marker
+  if (oldCoords) {
+    const overlay = document.getElementById('mapOverlay');
+    overlay.innerHTML = `
+      <div class="map-marker-old" style="left:${oldCoords.x}%;top:${oldCoords.y}%;width:32px;height:32px;"></div>
+      <div class="map-label-old" style="left:${oldCoords.x}%;top:${oldCoords.y}%;transform:translate(20px,-20px);">旧坐标</div>
+    `;
+    document.getElementById('coordDisplay').textContent = `旧坐标 ${oldCoords.x}%, ${oldCoords.y}%`;
+  }
+
   document.getElementById('mapInfo').textContent = label;
 }
 
