@@ -161,6 +161,13 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
 .import-box textarea { width:100%; height:100px; border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-size:13px; font-family:monospace; resize:vertical; }
 .import-box .hint { font-size:11px; color:var(--text3); margin:8px 0; }
 
+/* ── Lightbox ── */
+.lightbox { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.92); z-index:9999; display:none; align-items:center; justify-content:center; }
+.lightbox.show { display:flex; }
+.lightbox img { max-width:95vw; max-height:95vh; object-fit:contain; border-radius:4px; }
+.lightbox-close { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.15); color:#fff; border:none; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; }
+.lightbox-hint { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,.5); font-size:11px; pointer-events:none; }
+
 /* ── Responsive ── */
 @media (max-width:640px) {
   .main { padding:12px; }
@@ -293,6 +300,13 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
     </div>
   </section>
 
+<!-- ── Lightbox ── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" alt="">
+  <div class="lightbox-hint">点击任意位置关闭</div>
+</div>
+
 </main>
 
 <script>
@@ -369,7 +383,7 @@ function showFloorMap(idx) {
   if (f && f.imgFile) {
     img.src = f.imgFile;
     img.style.display = 'block';
-    img.onclick = function() { if (!isMarkMode) window.open(f.imgFile, '_blank'); };
+    img.onclick = function() { if (!isMarkMode) openLightbox(f.imgFile); };
   }
   document.getElementById('mapInfo').textContent = `${f.label} · 浏览模式`;
   document.getElementById('mapOverlay').innerHTML = '';
@@ -723,7 +737,18 @@ function downloadBlob(blob, fname) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-document.addEventListener('keydown', e => { if (e.key==='Escape') { exitMarkMode(); clearForm(); } });
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbox(); exitMarkMode(); clearForm(); } });
+
+/* ── Lightbox ── */
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
 
 init();
 </script>
