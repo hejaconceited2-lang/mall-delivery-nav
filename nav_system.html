@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>MallNav · 商城配送导航</title>
+<title>华林国际C馆 · 配送导航</title>
 <style>
 :root {
   --bg: #f0f2f5;
@@ -213,8 +213,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
   <div class="header-brand">
     <div class="header-logo">M</div>
     <div>
-      <div class="header-title">MallNav</div>
-      <div class="header-sub" id="mallName">商城配送导航</div>
+      <div class="header-title">华林国际C馆</div>
+      <div class="header-sub" id="mallName">配送导航</div>
     </div>
   </div>
   <div style="font-size:12px;color:var(--text3);" id="mallTag"></div>
@@ -244,7 +244,7 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
     </div>
     <div class="result-list" id="searchResults">
       <div class="guide" id="searchGuide">
-        <div class="guide-title">🏬 商城配送导航</div>
+        <div class="guide-title">🏬 华林国际C馆</div>
         <div class="guide-sub">外卖单上的店铺编号，输入就能找到</div>
         <div class="guide-steps">
           <div class="guide-step">
@@ -415,7 +415,7 @@ function getMallName() { return localStorage.getItem(MALL_KEY) || ''; }
 /* ====== INIT ====== */
 function init() {
   const mn = getMallName();
-  document.getElementById('mallName').textContent = mn || '商城配送导航';
+  document.getElementById('mallName').textContent = mn || '华林国际C馆';
   document.getElementById('mallNameInput').value = mn;
   document.getElementById('mallTag').textContent = mn ? '已配置' : '';
   buildFloorSelects();
@@ -520,7 +520,7 @@ function renderGuideHTML() {
   const total = getShops().length;
   const floorSummary = ['1F','2F','3F','4F','5F','6F'].map(f => counts[f]||0).join('/');
   return `<div class="guide" id="searchGuide">
-    <div class="guide-title">🏬 商城配送导航</div>
+    <div class="guide-title">🏬 华林国际C馆</div>
     <div class="guide-sub">外卖单上的店铺编号，输入就能找到</div>
     <div class="guide-steps">
       <div class="guide-step">
@@ -777,7 +777,7 @@ function clearAllData() {
 function saveMallName() {
   const n = document.getElementById('mallNameInput').value.trim();
   localStorage.setItem(MALL_KEY, n);
-  document.getElementById('mallName').textContent = n || '商城配送导航';
+  document.getElementById('mallName').textContent = n || '华林国际C馆';
   document.getElementById('mallTag').textContent = n ? '已配置' : '';
 }
 
