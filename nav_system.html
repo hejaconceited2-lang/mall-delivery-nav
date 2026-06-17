@@ -186,6 +186,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
 .lightbox img { max-width:95vw; max-height:95vh; object-fit:contain; border-radius:4px; }
 .lightbox-close { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.15); color:#fff; border:none; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; }
 .lightbox-hint { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,.5); font-size:11px; pointer-events:none; }
+	.lightbox-spinner { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:40px; height:40px; border:3px solid rgba(255,255,255,.15); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite; z-index:5; }
+	@keyframes spin { to { transform:translate(-50%,-50%) rotate(360deg); } }
 
 /* ── Responsive ── */
 @media (max-width:640px) {
@@ -343,7 +345,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); -webkit
 <!-- ── Lightbox ── -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
-  <img id="lightboxImg" src="" alt="">
+  <div class="lightbox-spinner" id="lightboxSpinner"></div>
+  <img id="lightboxImg" src="" alt="" onload="document.getElementById('lightboxSpinner').style.display='none'" onerror="document.getElementById('lightboxSpinner').style.display='none'">
   <div class="lightbox-hint">点击任意位置关闭</div>
 </div>
 
@@ -355,7 +358,7 @@ const STORAGE_KEY = 'mall_nav_shops_v2';
 const MALL_KEY = 'mall_nav_name';
 const FLOOR_KEY = 'mall_nav_floors';
 const VERSION_KEY = 'mall_nav_data_version';
-const DATA_VERSION = 3;  // bump when floor layout or default data changes
+const DATA_VERSION = 4;  // bump when floor layout or default data changes
 
 /* ====== DATA ====== */
 const OLD_KEY = 'mall_nav_shops';
@@ -380,12 +383,12 @@ if (localVersion !== DATA_VERSION) {
 }
 
 let floorConfig = JSON.parse(localStorage.getItem(FLOOR_KEY)) || [
-  { id: '1F', label: '1F', imgFile: 'a6bbce4e27f97f1816dc892722aa1307.jpg' },
-  { id: '2F', label: '2F', imgFile: '9b534d99f14d54ba5694e068f92a7a78.jpg' },
-  { id: '3F', label: '3F', imgFile: '679d8cf014f685dc05a2705f71894256.jpg' },
-  { id: '4F', label: '4F', imgFile: '1326027b73ab80b5f46dbb489ca912d5.jpg' },
-  { id: '5F', label: '5F', imgFile: '0d667d2a8dc413eaafb4786de19f0214.jpg' },
-  { id: '6F', label: '6F', imgFile: '10f27b10ed98952c4f80ef06942a0862.jpg' }
+  { id: '1F', label: '1F', imgFile: 'a6bbce4e27f97f1816dc892722aa1307.jpg', thumbFile: 'a6bbce4e27f97f1816dc892722aa1307_thumb.jpg' },
+  { id: '2F', label: '2F', imgFile: '9b534d99f14d54ba5694e068f92a7a78.jpg', thumbFile: '9b534d99f14d54ba5694e068f92a7a78_thumb.jpg' },
+  { id: '3F', label: '3F', imgFile: '679d8cf014f685dc05a2705f71894256.jpg', thumbFile: '679d8cf014f685dc05a2705f71894256_thumb.jpg' },
+  { id: '4F', label: '4F', imgFile: '1326027b73ab80b5f46dbb489ca912d5.jpg', thumbFile: '1326027b73ab80b5f46dbb489ca912d5_thumb.jpg' },
+  { id: '5F', label: '5F', imgFile: '0d667d2a8dc413eaafb4786de19f0214.jpg', thumbFile: '0d667d2a8dc413eaafb4786de19f0214_thumb.jpg' },
+  { id: '6F', label: '6F', imgFile: '10f27b10ed98952c4f80ef06942a0862.jpg', thumbFile: '10f27b10ed98952c4f80ef06942a0862_thumb.jpg' }
 ];
 
 let currentFloorIdx = 0;
@@ -443,7 +446,8 @@ function showFloorMap(idx) {
   const img = document.getElementById('floorImg');
   const f = floorConfig[idx];
   if (f && f.imgFile) {
-    img.src = f.imgFile;
+    // Load thumbnail for fast display; full image only on lightbox click
+    img.src = f.thumbFile || f.imgFile;
     img.style.display = 'block';
     img.onclick = function() { if (!isMarkMode) openLightbox(f.imgFile); };
   }
@@ -875,12 +879,15 @@ document.addEventListener('keydown', e => { if (e.key==='Escape') { closeLightbo
 
 /* ── Lightbox ── */
 function openLightbox(src) {
+  document.getElementById('lightboxSpinner').style.display = 'block';
   document.getElementById('lightboxImg').src = src;
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('show');
+  document.getElementById('lightboxImg').src = '';
+  document.getElementById('lightboxSpinner').style.display = 'none';
   document.body.style.overflow = '';
 }
 
